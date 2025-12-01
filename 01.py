@@ -11,7 +11,7 @@ print("Day", DAY, "-", 'Test data' if TEST else 'Actual data')
 with open(inputFilename) as f:
     lines = [line.rstrip() for line in f]
 
-# part 1
+# parts 1 & 2
 pointer = 50
 zeroStops = 0
 zeroPositions = 0
