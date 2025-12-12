@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 import time
 from collections import deque
+from scipy.optimize import linprog
+import numpy as np
 
 start_time = time.time()
 
 DAY = '10'
-TEST = True
+TEST = False
 inputFilename = 'data/' + DAY + '_input' + ('_test' if TEST else '') + '.txt'
 print("Day", DAY, "-", 'Test data' if TEST else 'Actual data')
 
@@ -25,16 +27,16 @@ for line in lines:
             t[int(index)] = '1'
     machine['target'] = int(''.join(t), base=2)
 
-    machine['jolts'] = []
+    machine['buttons'] = []
     schematics = []
     for schematic in line[1:-1]:
+        machine['buttons'].append([int(x) for x in schematic[1:-1].split(',')])
         s = ['0'] * numLights
         for index in schematic[1:-1].split(','):
             s[int(index)] = '1'
         schematics.append(int(''.join(s), base=2))
-        machine['jolts'].append([int(x) for x in s])
     machine['schematics'] = schematics
-    machine['joltage'] = line[-1]
+    machine['joltage'] = [int(x) for x in line[-1][1:-1].split(',')]
 
     machines.append(machine)
 
@@ -67,27 +69,14 @@ else:
 # part 2
 runningSum = 0
 for machine in machines:
-    target = [int(x) for x in machine['joltage'][1:-1].split(',')]
-    candidates = machine['jolts']
-
-    stillToProcess = deque([([0] * machine['numLights'], 0)])
-
-    while stillToProcess:
-        curCounts, numPresses = stillToProcess.popleft()
-        if curCounts > target:
-            continue
-        numPresses += 1
-        for candidate in candidates:
-            newCounts = [sum(x) for x in zip(curCounts, candidate)]
-            if newCounts == target:
-                runningSum += numPresses
-                # print("This machine's solution:",numPresses)
-                stillToProcess = deque()
-                break
-            else:
-                stillToProcess.append((newCounts, numPresses))
-
-print("Part 2 answer:", runningSum)
+    buttons = machine['buttons']
+    A = np.array([[int(i in button) for i in range(len(machine['joltage']))]
+                  for button in buttons]).transpose()
+    b = np.array(machine['joltage'])
+    c = [1] * len(buttons)
+    solution = linprog(c=c, A_eq=A, b_eq=b, integrality=1)
+    runningSum += solution.fun
+print("Part 2 answer:", int(runningSum))
 
 elapsedTime = (time.time() - start_time)
 if elapsedTime < 1:
